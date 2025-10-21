@@ -1,6 +1,6 @@
 // functions/api/battery.js
 
-// Конфигурация
+// Конфигурация KV-ключей
 const BATTERY_KEYS = {
     '1': 'battery_state_1',
     '2': 'battery_state_2',
@@ -9,14 +9,17 @@ const BATTERY_KEYS = {
 
 // Экспортируем единый объект, который содержит все обработчики методов
 export const onRequest = {
-    // 1. Обработчик для POST-запросов (от Home Assistant)
+
+    // =======================================================
+    // ✅ ОБРАБОТЧИК ДЛЯ POST-ЗАПРОСОВ (ОБНОВЛЕНИЕ ДАННЫХ)
+    // =======================================================
     POST: async ({ request, env }) => {
         try {
             const data = await request.json();
-            const { id, level } = data;
+            const { id, level } = data; // Деструктурирование
 
             if (!BATTERY_KEYS[id] || typeof level !== 'number' || level < 0 || level > 100) {
-                return new Response('Invalid ID or level', { status: 400 });
+                return new Response('Invalid ID (1, 2, or 3) or invalid level (0-100)', { status: 400 });
             }
 
             const key = BATTERY_KEYS[id];
@@ -26,16 +29,21 @@ export const onRequest = {
                 timestamp: new Date().toISOString()
             };
 
+            // Запись в KV Storage. env.BATTERY_KV должна быть привязана.
             await env.BATTERY_KV.put(key, JSON.stringify(dataToStore));
 
             return new Response(`Battery ${id} updated successfully`, { status: 200 });
 
         } catch (error) {
-            return new Response('Internal Server Error during POST', { status: 500 });
+            // Если возникла проблема с KV-привязкой или JSON-парсингом.
+            console.error('POST Error:', error.stack); 
+            return new Response('Internal Server Error (Check KV Binding or JSON format)', { status: 500 });
         }
     },
 
-    // 2. Обработчик для GET-запросов (для главной страницы)
+    // =======================================================
+    // ✅ ОБРАБОТЧИК ДЛЯ GET-ЗАПРОСОВ (ПОЛУЧЕНИЕ ДАННЫХ)
+    // =======================================================
     GET: async ({ env }) => {
         try {
             const results = {};
@@ -53,9 +61,8 @@ export const onRequest = {
             });
 
         } catch (error) {
-            return new Response('Internal Server Error during GET', { status: 500 });
+            console.error('GET Error:', error.stack);
+            return new Response('Internal Server Error during GET processing', { status: 500 });
         }
     }
 };
-
-// ПРИМЕЧАНИЕ: В этом случае экспортировать onRequestPost и onRequestGet НЕ НУЖНО.
