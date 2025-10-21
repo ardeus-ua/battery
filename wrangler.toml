@@ -1,0 +1,11 @@
+name = "battery-indicator-pages"  # Имя вашего проекта
+
+# Настройки для Pages
+pages_build_output_dir = "public"
+functions_directory = "functions"
+
+# Настройки для KV-привязки (необходимо для локального тестирования)
+[[kv_namespaces]]
+binding = "BATTERY_KV"
+# ID здесь не обязателен для локального dev, но нужен для deploy
+id = "f60c5efc4da34e3d8e341abccd5b2ff8"
