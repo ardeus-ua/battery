@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Индикатор Батарей</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Состояние Батарей</h1>
+        <div class="batteries-grid">
+            <div class="battery-card" data-id="1">
+                <h2>Лифт п2</h2>
+                <div class="battery">
+                    <div class="battery-fill" id="fill-1"></div>
+                    <div class="battery-cap"></div>
+                </div>
+                <p class="level-display" id="level-1">Заряд: --%</p>
+                <p class="timestamp-display" id="time-1">Обновлено: --</p>
+            </div>
+
+            <div class="battery-card" data-id="2">
+                <h2>Вода</h2>
+                <div class="battery">
+                    <div class="battery-fill" id="fill-2"></div>
+                    <div class="battery-cap"></div>
+                </div>
+                <p class="level-display" id="level-2">Заряд: --%</p>
+                <p class="timestamp-display" id="time-2">Обновлено: --</p>
+            </div>
+
+            <div class="battery-card" data-id="3">
+                <h2>Отопление</h2>
+                <div class="battery">
+                    <div class="battery-fill" id="fill-3"></div>
+                    <div class="battery-cap"></div>
+                </div>
+                <p class="level-display" id="level-3">Заряд: --%</p>
+                <p class="timestamp-display" id="time-3">Обновлено: --</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = '/api/battery';
+
+        function getBatteryColor(level) {
+            if (level > 50) return '#4CAF50'; // Зеленый
+            if (level > 20) return '#FFC107'; // Желтый
+            return '#F44336'; // Красный
+        }
+
+        function updateBatteryUI(id, level, timestamp) {
+            const fill = document.getElementById(`fill-${id}`);
+            const levelDisplay = document.getElementById(`level-${id}`);
+            const timeDisplay = document.getElementById(`time-${id}`);
+
+            const timeStr = timestamp === 'Нет данных' 
+                ? 'Нет данных' 
+                : new Date(timestamp).toLocaleString();
+            
+            // Обновление индикатора
+            fill.style.width = `${level}%`;
+            fill.style.backgroundColor = getBatteryColor(level);
+
+            // Обновление текста
+            levelDisplay.textContent = `Заряд: ${level}%`;
+            timeDisplay.textContent = `Обновлено: ${timeStr}`;
+        }
+
+        async function fetchAllBatteryLevels() {
+            try {
+                const response = await fetch(API_ENDPOINT);
+                const batteriesData = await response.json();
+
+                if (response.ok) {
+                    for (const id in batteriesData) {
+                        const { level, timestamp } = batteriesData[id];
+                        updateBatteryUI(id, level, timestamp);
+                    }
+                } else {
+                    console.error('API Error:', batteriesData);
+                    // Обновить все батареи с ошибкой, если API вернуло ошибку
+                    [1, 2, 3].forEach(id => updateBatteryUI(id, 0, 'Ошибка загрузки'));
+                }
+
+            } catch (error) {
+                console.error('Error fetching battery data:', error);
+                [1, 2, 3].forEach(id => updateBatteryUI(id, 0, 'Ошибка сети'));
+            }
+        }
+
+        // Загрузка при старте
+        fetchAllBatteryLevels();
+
+        // Обновление каждые 30 секунд
+        setInterval(fetchAllBatteryLevels, 30000);
+    </script>
+
+</body>
+</html>
