@@ -2,104 +2,102 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Индикатор Батарей</title>
+    <title>Индикатор Батареи Home Assistant</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f4f4f9; }
-        .container { text-align: center; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
-        h1 { color: #333; margin-bottom: 30px; }
-        .batteries-grid { display: flex; gap: 30px; justify-content: center; }
-        .battery-card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; width: 200px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); }
-        h2 { margin-top: 0; color: #007BFF; }
-        .battery { width: 150px; height: 70px; border: 3px solid #333; border-radius: 10px; margin: 15px auto; position: relative; display: flex; align-items: center; overflow: hidden; }
-        .battery-cap { width: 10px; height: 30px; background-color: #333; position: absolute; right: -13px; top: 50%; transform: translateY(-50%); border-radius: 0 5px 5px 0; z-index: 1; }
-        .battery-fill { height: 100%; width: 0%; background-color: #ccc; transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out; border-radius: 5px; }
-        .level-display { font-size: 1.2em; font-weight: bold; margin: 10px 0 5px 0; }
-        .timestamp-display { font-size: 0.8em; color: #777; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f9; }
+        h1 { margin-bottom: 30px; color: #333; }
+        .battery-grid { display: flex; gap: 40px; }
+        
+        .indicator-unit { display: flex; flex-direction: column; align-items: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .battery-container { width: 150px; height: 100px; border: 4px solid #333; border-radius: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; background-color: #f8f8f8; }
+        .battery-container::after { content: ''; position: absolute; right: -15px; top: 50%; transform: translateY(-50%); width: 10px; height: 25px; background-color: #333; border-radius: 0 5px 5px 0; }
+        .battery-level { font-size: 2.5em; font-weight: bold; color: #333; }
+        .status-text { margin-top: 5px; font-size: 0.9em; color: #666; }
+        .timestamp-text { margin-top: 10px; font-size: 0.8em; color: #999; text-align: center; }
+
+        .charging { animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>Состояние Батарей</h1>
-        <div class="batteries-grid">
-            <div class="battery-card" data-id="1">
-                <h2>Лифты</h2>
-                <div class="battery"><div class="battery-fill" id="fill-1"></div><div class="battery-cap"></div></div>
-                <p class="level-display" id="level-1">Заряд: --%</p>
-                <p class="timestamp-display" id="time-1">Обновлено: --</p>
-            </div>
-            <div class="battery-card" data-id="2">
-                <h2>Вода</h2>
-                <div class="battery"><div class="battery-fill" id="fill-2"></div><div class="battery-cap"></div></div>
-                <p class="level-display" id="level-2">Заряд: --%</p>
-                <p class="timestamp-display" id="time-2">Обновлено: --</p>
-            </div>
-            <div class="battery-card" data-id="3">
-                <h2>Отопление</h2>
-                <div class="battery"><div class="battery-fill" id="fill-3"></div><div class="battery-cap"></div></div>
-                <p class="level-display" id="level-3">Заряд: --%</p>
-                <p class="timestamp-display" id="time-3">Обновлено: --</p>
-            </div>
+    <h1>Индикаторы Батарей Home Assistant</h1>
+    <div class="battery-grid" id="battery-grid">
         </div>
-    </div>
 
     <script>
-        const API_ENDPOINT = '/api/battery';
+        const NUM_BATTERIES = 3;
+        const grid = document.getElementById('battery-grid');
 
-        function getBatteryColor(level) {
-            if (level > 50) return '#4CAF50';
-            if (level > 20) return '#FFC107';
-            return '#F44336';
+        // Создание HTML-элементов для каждой батареи
+        for (let i = 1; i <= NUM_BATTERIES; i++) {
+            const unit = document.createElement('div');
+            unit.className = 'indicator-unit';
+            unit.innerHTML = `
+                <h2>Батарея ${i}</h2>
+                <div class="battery-container" id="container-${i}">
+                    <div class="battery-level" id="level-${i}">--%</div>
+                </div>
+                <div class="status-text" id="status-${i}">Ожидание данных...</div>
+                <div class="timestamp-text" id="time-${i}">Последнее обновление: Н/Д</div>
+            `;
+            grid.appendChild(unit);
         }
 
-        function updateBatteryUI(id, level, timestamp) {
-            const fill = document.getElementById(`fill-${id}`);
-            const levelDisplay = document.getElementById(`level-${id}`);
-            const timeDisplay = document.getElementById(`time-${id}`);
-
-            // Форматирование даты и времени
-            const timeStr = timestamp === 'Нет данных' 
-                ? 'Нет данных' 
-                : new Date(timestamp).toLocaleString('ru-RU', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit', 
-                    second: '2-digit' 
-                });
-            
-            fill.style.width = `${level}%`;
-            fill.style.backgroundColor = getBatteryColor(level);
-            levelDisplay.textContent = `Заряд: ${level}%`;
-            timeDisplay.textContent = `Обновлено: ${timeStr}`;
+        // Вспомогательная функция для форматирования времени
+        function formatTimestamp(isoString) {
+            if (!isoString) return 'Н/Д';
+            // Преобразуем UTC строку в локальное время
+            const date = new Date(isoString);
+            return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU');
         }
 
-        async function fetchAllBatteryLevels() {
+        // Функция для обновления интерфейса
+        async function updateBatteryStatus() {
             try {
-                const response = await fetch(API_ENDPOINT);
-                const batteriesData = await response.json();
+                // Запрос к функции Cloudflare Pages
+                const response = await fetch('/api/data');
+                const batteries = await response.json(); // Ожидаем массив [{id, level, isCharging, timestamp}, ...]
 
-                if (response.ok) {
-                    for (const id in batteriesData) {
-                        const { level, timestamp } = batteriesData[id];
-                        updateBatteryUI(id, level, timestamp);
+                batteries.forEach(data => {
+                    const { id, level, isCharging, timestamp } = data;
+
+                    const levelEl = document.getElementById(`level-${id}`);
+                    const statusEl = document.getElementById(`status-${id}`);
+                    const containerEl = document.getElementById(`container-${id}`);
+                    const timeEl = document.getElementById(`time-${id}`);
+
+                    if (levelEl) {
+                        levelEl.textContent = `${level}%`;
+                        statusEl.textContent = isCharging ? 'Заряжается ⚡' : 'Не заряжается';
+                        timeEl.textContent = `Обновлено: ${formatTimestamp(timestamp)}`;
+
+                        // Цветовая индикация
+                        if (level <= 20) {
+                            levelEl.style.color = '#d9534f'; // Красный
+                        } else if (level <= 50) {
+                            levelEl.style.color = '#f0ad4e'; // Оранжевый
+                        } else {
+                            levelEl.style.color = '#5cb85c'; // Зеленый
+                        }
+                        
+                        containerEl.classList.toggle('charging', isCharging);
                     }
-                } else {
-                    console.error('API Error:', batteriesData);
-                    [1, 2, 3].forEach(id => updateBatteryUI(id, 0, 'Ошибка загрузки'));
-                }
+                });
 
             } catch (error) {
-                console.error('Error fetching battery data:', error);
-                [1, 2, 3].forEach(id => updateBatteryUI(id, 0, 'Ошибка сети'));
+                console.error('Ошибка при получении данных:', error);
+                // Обновление всех статусов в случае ошибки
+                for (let i = 1; i <= NUM_BATTERIES; i++) {
+                    document.getElementById(`level-${i}`).textContent = 'Ош.';
+                    document.getElementById(`status-${i}`).textContent = 'Ошибка сети';
+                    document.getElementById(`time-${i}`).textContent = 'Обновлено: Ошибка';
+                }
             }
         }
 
-        fetchAllBatteryLevels();
-        setInterval(fetchAllBatteryLevels, 30000);
+        // Обновлять данные каждые 5 секунд
+        updateBatteryStatus(); 
+        setInterval(updateBatteryStatus, 5000); 
     </script>
-
 </body>
 </html>
