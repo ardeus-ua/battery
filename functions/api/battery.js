@@ -7,61 +7,55 @@ const BATTERY_KEYS = {
     '3': 'battery_state_3'
 };
 
-// =======================================================
-// ✅ ОБРАБОТЧИК ДЛЯ POST-ЗАПРОСА (ОБНОВЛЕНИЕ ДАННЫХ)
-// Имя 'onRequestPost' КРИТИЧЕСКИ ВАЖНО для Pages
-// =======================================================
-export async function onRequestPost({ request, env }) {
-    try {
-        const data = await request.json();
-        const { id, level } = data;
+// Экспортируем единый объект, который содержит все обработчики методов
+export const onRequest = {
+    // 1. Обработчик для POST-запросов (от Home Assistant)
+    POST: async ({ request, env }) => {
+        try {
+            const data = await request.json();
+            const { id, level } = data;
 
-        if (!BATTERY_KEYS[id] || typeof level !== 'number' || level < 0 || level > 100) {
-            return new Response('Invalid ID (1, 2, or 3) or invalid level (0-100)', { status: 400 });
-        }
-
-        const key = BATTERY_KEYS[id];
-        const dataToStore = {
-            id: parseInt(id),
-            level: level,
-            timestamp: new Date().toISOString()
-        };
-
-        // Запись в KV Storage.
-        await env.BATTERY_KV.put(key, JSON.stringify(dataToStore));
-
-        return new Response(`Battery ${id} updated successfully`, { status: 200 });
-
-    } catch (error) {
-        // Если ошибка 500 появляется здесь, проверьте логи Cloudflare: 
-        // часто это означает ошибку с KV-привязкой (env.BATTERY_KV)
-        console.error('POST Error:', error.stack); 
-        return new Response('Internal Server Error during POST processing', { status: 500 });
-    }
-}
-
-// =======================================================
-// ✅ ОБРАБОТЧИК ДЛЯ GET-ЗАПРОСА (ПОЛУЧЕНИЕ ДАННЫХ)
-// Имя 'onRequestGet' КРИТИЧЕСКИ ВАЖНО для Pages
-// =======================================================
-export async function onRequestGet({ env }) {
-    try {
-        const results = {};
-        
-        for (const [id, key] of Object.entries(BATTERY_KEYS)) {
-            const data = await env.BATTERY_KV.get(key);
-            results[id] = data ? JSON.parse(data) : { id: parseInt(id), level: 0, timestamp: 'Нет данных' };
-        }
-
-        return new Response(JSON.stringify(results), {
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+            if (!BATTERY_KEYS[id] || typeof level !== 'number' || level < 0 || level > 100) {
+                return new Response('Invalid ID or level', { status: 400 });
             }
-        });
 
-    } catch (error) {
-        console.error('GET Error:', error.stack);
-        return new Response('Internal Server Error during GET processing', { status: 500 });
+            const key = BATTERY_KEYS[id];
+            const dataToStore = {
+                id: parseInt(id),
+                level: level,
+                timestamp: new Date().toISOString()
+            };
+
+            await env.BATTERY_KV.put(key, JSON.stringify(dataToStore));
+
+            return new Response(`Battery ${id} updated successfully`, { status: 200 });
+
+        } catch (error) {
+            return new Response('Internal Server Error during POST', { status: 500 });
+        }
+    },
+
+    // 2. Обработчик для GET-запросов (для главной страницы)
+    GET: async ({ env }) => {
+        try {
+            const results = {};
+            
+            for (const [id, key] of Object.entries(BATTERY_KEYS)) {
+                const data = await env.BATTERY_KV.get(key);
+                results[id] = data ? JSON.parse(data) : { id: parseInt(id), level: 0, timestamp: 'Нет данных' };
+            }
+
+            return new Response(JSON.stringify(results), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+
+        } catch (error) {
+            return new Response('Internal Server Error during GET', { status: 500 });
+        }
     }
-}
+};
+
+// ПРИМЕЧАНИЕ: В этом случае экспортировать onRequestPost и onRequestGet НЕ НУЖНО.
