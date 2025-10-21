@@ -1,0 +1,84 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f4f4f9;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.batteries-grid {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+
+.battery-card {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    width: 200px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+h2 {
+    margin-top: 0;
+    color: #007BFF;
+}
+
+.battery {
+    width: 150px;
+    height: 70px;
+    border: 3px solid #333;
+    border-radius: 10px;
+    margin: 15px auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden; 
+}
+
+.battery-cap {
+    width: 10px;
+    height: 30px;
+    background-color: #333;
+    position: absolute;
+    right: -13px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 0 5px 5px 0;
+    z-index: 1; /* Убедимся, что крышка поверх заполнения */
+}
+
+.battery-fill {
+    height: 100%;
+    width: 0%; 
+    background-color: #ccc; /* Цвет по умолчанию */
+    transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+    border-radius: 5px;
+}
+
+.level-display {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 10px 0 5px 0;
+}
+
+.timestamp-display {
+    font-size: 0.8em;
+    color: #777;
+}
