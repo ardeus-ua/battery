@@ -1,4 +1,4 @@
-name = "battery-indicator-pages"  # Имя вашего проекта
+name = "battery"  # Имя вашего проекта
 
 # Настройки для Pages
 pages_build_output_dir = "public"
