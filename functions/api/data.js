@@ -1,7 +1,7 @@
 // functions/api/data.js
 // Cloudflare Pages Function (Worker)
+// Использует привязку к KV, названную BATTERY_KV
 
-// ID ключа, который будет хранить массив всех батарей в KV
 const KV_KEY = 'all_batteries_data'; 
 
 export async function onRequest(context) {
@@ -13,9 +13,9 @@ export async function onRequest(context) {
     // ----------------------------------------------------------------
     if (context.request.method === 'GET') {
         try {
-            // Читаем текущий массив данных из KV
             const dataString = await KV.get(KV_KEY);
-            const data = dataString ? JSON.parse(dataString) : [];
+            // Если данных нет, возвращаем пустой массив
+            const data = dataString ? JSON.parse(dataString) : []; 
             
             return new Response(JSON.stringify(data), {
                 headers: { 'Content-Type': 'application/json' }
@@ -28,21 +28,22 @@ export async function onRequest(context) {
 
     // ----------------------------------------------------------------
     // 2. POST-запрос: Обновление данных (из Home Assistant)
-    // Ожидаемый JSON: { id: 1, level: 95, isCharging: true }
+    // Ожидаемый JSON: { id: 1, level: 95 }
     // ----------------------------------------------------------------
     if (context.request.method === 'POST') {
         try {
             const updateData = await context.request.json();
-            const { id, level, isCharging } = updateData;
+            const { id, level } = updateData;
             
-            if (id && level !== undefined && isCharging !== undefined) {
+            // Проверяем наличие обязательных полей
+            if (id && level !== undefined) {
                 
-                // Получаем текущий массив данных
+                // Получаем текущий массив данных или инициализируем его, если нет
                 const dataString = await KV.get(KV_KEY);
                 let batteries = dataString ? JSON.parse(dataString) : [
-                    { id: 1, level: 0, isCharging: false, timestamp: null },
-                    { id: 2, level: 0, isCharging: false, timestamp: null },
-                    { id: 3, level: 0, isCharging: false, timestamp: null },
+                    { id: 1, level: 0, timestamp: null },
+                    { id: 2, level: 0, timestamp: null },
+                    { id: 3, level: 0, timestamp: null },
                 ];
                 
                 // Находим и обновляем нужную батарею
@@ -50,8 +51,8 @@ export async function onRequest(context) {
 
                 if (batteryIndex !== -1) {
                     batteries[batteryIndex].level = level;
-                    batteries[batteryIndex].isCharging = isCharging;
-                    batteries[batteryIndex].timestamp = new Date().toISOString(); // UTC время
+                    // Обновляем метку времени
+                    batteries[batteryIndex].timestamp = new Date().toISOString(); 
                     
                     // Сохраняем обновленный массив обратно в KV
                     await KV.put(KV_KEY, JSON.stringify(batteries));
@@ -63,7 +64,7 @@ export async function onRequest(context) {
 
             }
 
-            return new Response('Неверный формат данных (требуются id, level, isCharging).', { status: 400 });
+            return new Response('Неверный формат данных (требуются id, level).', { status: 400 });
 
         } catch (err) {
             return new Response(`Ошибка обработки POST-запроса: ${err.message}`, { status: 500 });
