@@ -12,11 +12,10 @@
         .battery-container { width: 150px; height: 100px; border: 4px solid #333; border-radius: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; background-color: #f8f8f8; }
         .battery-container::after { content: ''; position: absolute; right: -15px; top: 50%; transform: translateY(-50%); width: 10px; height: 25px; background-color: #333; border-radius: 0 5px 5px 0; }
         .battery-level { font-size: 2.5em; font-weight: bold; color: #333; }
-        .status-text { margin-top: 5px; font-size: 0.9em; color: #666; }
+        /* Удален status-text, так как нет isCharging */
         .timestamp-text { margin-top: 10px; font-size: 0.8em; color: #999; text-align: center; }
 
-        .charging { animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* Удалены стили зарядки (.charging, @keyframes) */
     </style>
 </head>
 <body>
@@ -37,7 +36,6 @@
                 <div class="battery-container" id="container-${i}">
                     <div class="battery-level" id="level-${i}">--%</div>
                 </div>
-                <div class="status-text" id="status-${i}">Ожидание данных...</div>
                 <div class="timestamp-text" id="time-${i}">Последнее обновление: Н/Д</div>
             `;
             grid.appendChild(unit);
@@ -56,19 +54,19 @@
             try {
                 // Запрос к функции Cloudflare Pages
                 const response = await fetch('/api/data');
-                const batteries = await response.json(); // Ожидаем массив [{id, level, isCharging, timestamp}, ...]
+                // Ожидаем массив: [{id, level, timestamp}, ...]
+                const batteries = await response.json(); 
 
                 batteries.forEach(data => {
-                    const { id, level, isCharging, timestamp } = data;
+                    // Используем только id, level и timestamp
+                    const { id, level, timestamp } = data; 
 
                     const levelEl = document.getElementById(`level-${id}`);
-                    const statusEl = document.getElementById(`status-${id}`);
                     const containerEl = document.getElementById(`container-${id}`);
                     const timeEl = document.getElementById(`time-${id}`);
 
                     if (levelEl) {
                         levelEl.textContent = `${level}%`;
-                        statusEl.textContent = isCharging ? 'Заряжается ⚡' : 'Не заряжается';
                         timeEl.textContent = `Обновлено: ${formatTimestamp(timestamp)}`;
 
                         // Цветовая индикация
@@ -80,7 +78,7 @@
                             levelEl.style.color = '#5cb85c'; // Зеленый
                         }
                         
-                        containerEl.classList.toggle('charging', isCharging);
+                        // Анимация зарядки удалена
                     }
                 });
 
@@ -89,7 +87,6 @@
                 // Обновление всех статусов в случае ошибки
                 for (let i = 1; i <= NUM_BATTERIES; i++) {
                     document.getElementById(`level-${i}`).textContent = 'Ош.';
-                    document.getElementById(`status-${i}`).textContent = 'Ошибка сети';
                     document.getElementById(`time-${i}`).textContent = 'Обновлено: Ошибка';
                 }
             }
